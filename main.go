@@ -6,6 +6,17 @@ import (
 	"net/http"
 )
 
+/*
+	Create DB
+	Add methods for Link
+		Get types:
+			redirect
+			name
+			owner
+	Add methods for User
+		Get  types:
+			Links
+*/
 func main() {
 
 
@@ -18,6 +29,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
     switch r.Method {
     case "GET":
     case "POST":
+	case "DELETE":
     default:
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
     }
@@ -26,7 +38,27 @@ func linkHandler(w http.ResponseWriter, r *http.Request) {
     switch r.Method {
     case "GET":
     case "POST":
+	case "DELETE":
     default:
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
     }
 }
+func get_link() {
+
+}
+func delete_link() {
+
+}
+func create_link() {
+
+}
+func get_user() {
+
+}
+func delete_user() {
+
+}
+func create_user() {
+
+}
+
