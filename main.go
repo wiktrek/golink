@@ -1,9 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
 /*
@@ -17,8 +23,34 @@ import (
 		Get  types:
 			Links
 */
+
 func main() {
 
+	err := godotenv.Load()
+ 	if err != nil {
+  		log.Fatal("Error loading .env file")
+  	}
+	DB := os.Getenv("DB")
+	db, err := sql.Open("mysql", DB)
+	
+	if err != nil {
+		panic(err)
+	}
+	
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	
+	defer db.Close()
+	
+	err = db.Ping()
+    
+	if err != nil {
+        panic(err.Error())
+    }
+	
+	fmt.Println("Connected to db!")
+	
 	fileserver := http.FileServer(http.Dir("static"))
 	http.Handle("/", fileserver)
     http.HandleFunc("/api/user/", userHandler)
@@ -49,6 +81,7 @@ func get_link() {
 	
 	switch get_type {
 	case "owner":
+
 	case "name":
 	case "redirect":
 	}
