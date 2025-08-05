@@ -11,6 +11,11 @@ CREATE TABLE IF NOT EXISTS `Short` (
     `url` TEXT NOT NULL,
     `ownerId` INT,
     `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `expiresAt` TIMESTAMP,
+    `isActive` BOOLEAN DEFAULT TRUE;
     `clicks` INT DEFAULT 0,
     FOREIGN KEY (`ownerId`) REFERENCES `User`(`id`) ON DELETE SET NULL
 );
+
+CREATE INDEX idx_user_email ON `User`(`email`);
+CREATE INDEX idx_short_ownerId ON `Short`(`ownerId`);

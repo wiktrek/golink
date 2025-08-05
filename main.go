@@ -23,6 +23,32 @@ import (
 		Get  types:
 			Links
 */
+type User struct {
+	id int 
+	username string
+	password string 
+	email string
+	createdAt string
+} 
+type Short struct {
+	slug string
+	url string
+	ownerId int
+	createdAt string
+	expiresAt string
+	isActive bool
+	clicks int
+}
+type App struct {
+	db *sql.DB
+}
+func (app *App) routes() {
+
+	fileserver := http.FileServer(http.Dir("static"))
+	http.Handle("/", fileserver)
+	http.HandleFunc("/api/user", app.userHandler)
+    http.HandleFunc("/api/link", app.linkHandler)
+}
 
 func main() {
 
@@ -42,7 +68,7 @@ func main() {
 	db.SetMaxIdleConns(10)
 	
 	defer db.Close()
-	
+
 	err = db.Ping()
     
 	if err != nil {
@@ -50,27 +76,19 @@ func main() {
     }
 	
 	fmt.Println("Connected to db!")
-	
-	fileserver := http.FileServer(http.Dir("static"))
-	http.Handle("/", fileserver)
-    http.HandleFunc("/api/user/", userHandler)
-	http.HandleFunc("/api/link/", linkHandler)
+
+	app := &App{db: db}
+    app.routes()
+
     fmt.Println("Server is running at http://localhost:8080")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
-func userHandler(w http.ResponseWriter, r *http.Request) {
+func (app *App) linkHandler(w http.ResponseWriter, r *http.Request) {
     switch r.Method {
     case "GET":
     case "POST":
-	case "DELETE":
-    default:
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-    }
-}
-func linkHandler(w http.ResponseWriter, r *http.Request) {
-    switch r.Method {
-    case "GET":
-    case "POST":
+		
+		create_link(app.db, slug, url, ownerId)
 	case "DELETE":
     default:
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -89,9 +107,23 @@ func get_link() {
 func delete_link() {
 
 }
-func create_link() {
-
+func create_link(db *sql.DB, slug, url string, ownerId int) error {
+    query := "INSERT INTO Short (slug, url, ownerId) VALUES (?, ?, ?)"
+    _, err := db.Exec(query, slug, url, ownerId)
+    return err
 }
+
+func (app *App) userHandler(w http.ResponseWriter, r *http.Request) {
+    switch r.Method {
+    case "GET":
+    case "POST":
+	case "DELETE":
+    default:
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+    }
+}
+
+
 func get_user() {
 
 }
