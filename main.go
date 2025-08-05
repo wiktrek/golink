@@ -19,7 +19,8 @@ import (
 */
 func main() {
 
-
+	fileserver := http.FileServer(http.Dir("static"))
+	http.Handle("/", fileserver)
     http.HandleFunc("/api/user/", userHandler)
 	http.HandleFunc("/api/link/", linkHandler)
     fmt.Println("Server is running at http://localhost:8080")
@@ -44,7 +45,13 @@ func linkHandler(w http.ResponseWriter, r *http.Request) {
     }
 }
 func get_link() {
-
+	get_type := "name"
+	
+	switch get_type {
+	case "owner":
+	case "name":
+	case "redirect":
+	}
 }
 func delete_link() {
 
