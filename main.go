@@ -24,6 +24,9 @@ import (
 		Get  types:
 			Links
 */
+/*
+	all of this code isn't tested because I'm too lazy to selfhost a db
+*/
 type User struct {
 	id int 
 	username string
