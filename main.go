@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -86,26 +87,75 @@ func main() {
 func (app *App) linkHandler(w http.ResponseWriter, r *http.Request) {
     switch r.Method {
     case "GET":
+		get_link(app.db,"owner")
     case "POST":
-		
+		slug := ""
+		url := ""
+		ownerId := 0
 		create_link(app.db, slug, url, ownerId)
 	case "DELETE":
+		slug := ""
+		delete_link(app.db, slug)
     default:
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
     }
 }
-func get_link() {
-	get_type := "name"
-	
-	switch get_type {
-	case "owner":
-
-	case "name":
-	case "redirect":
-	}
+func get_link(db *sql.DB, get_type string) string {
+		switch get_type {
+		case "owner":
+			slug := "random_slug"
+			var owner int
+			query := "SELECT ownerId FROM Short WHERE slug = ?"
+			err := db.QueryRow(query, slug).Scan(&owner)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					panic(fmt.Errorf("no ownerId found for slug: %s", slug))
+				}
+				panic(err)
+			}
+			return strconv.Itoa(owner)
+		case "clicks":
+			slug := "random_slug"
+			var clicks int
+			query := "SELECT clicks FROM Short WHERE slug = ?"
+			err := db.QueryRow(query, slug).Scan(&clicks)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					panic(fmt.Errorf("no Owner found for slug: %s", slug))
+				}
+				panic(err)
+			}
+			return strconv.Itoa(clicks)
+		case "redirect":
+			slug := "random_slug"
+			var url string
+			query := "SELECT url FROM Short WHERE slug = ?"
+			err := db.QueryRow(query, slug).Scan(&url)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					panic(fmt.Errorf("no URL found for slug: %s", slug))
+				}
+				panic(err)
+			}
+			return url
+		}
+	return ""
 }
-func delete_link() {
+func delete_link(db *sql.DB, slug string) error {
+	query := "DELETE FROM Short WHERE slug = ?"
+	result, err := db.Exec(query, slug)
+	if err != nil {
+		return fmt.Errorf("failed to deelte link: %v", err)
+	}
+	rows_affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %v", err)
+	}
 
+	if rows_affected == 0 {
+		return fmt.Errorf("no link found with slug: %s", slug)
+	}
+	return nil
 }
 func create_link(db *sql.DB, slug, url string, ownerId int) error {
     query := "INSERT INTO Short (slug, url, ownerId) VALUES (?, ?, ?)"
