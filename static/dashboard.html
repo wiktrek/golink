@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Link creator — Golink</title>
+  <script src="/static/theme.js?v=3"></script>
+  <link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body class="dashboard-page">
+  <details class="settings">
+    <summary aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm9 3.5-2.1-1.2c-.1-.4-.3-.8-.5-1.2l.6-2.3-2.3-2.3-2.3.6-1.2-.5L12 3H9l-1.2 2.1-1.2.5L4.3 5 2 7.3l.6 2.3-.5 1.2L0 12v3l2.1 1.2.5 1.2L2 19.7 4.3 22l2.3-.6 1.2.5L9 24h3l1.2-2.1 1.2-.5 2.3.6 2.3-2.3-.6-2.3.5-1.2L21 15v-3Z"/></svg>
+    </summary>
+    <div class="settings-menu">
+      <p class="settings-title">Settings</p>
+      <form id="settings-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" minlength="3" maxlength="96" required>
+        <button type="submit">Save username</button>
+      </form>
+      <button id="theme-toggle" class="quiet-button" type="button">Use dark theme</button>
+      <a id="sign-out" href="/login">Sign out</a>
+    </div>
+  </details>
+
+  <main class="dashboard-main">
+    <header class="creator-header">
+      <p class="eyebrow">GOLINK</p>
+      <h1>Link creator</h1>
+    </header>
+
+    <form id="link-form" class="creator-form" hidden>
+      <label for="slug">Slug <span>optional</span></label>
+      <input id="slug" name="slug" type="text" pattern="[a-zA-Z0-9_\-]{3,64}" placeholder="my-link" autofocus>
+
+      <label for="url">Destination</label>
+      <input id="url" name="url" type="url" placeholder="https://example.com" required>
+
+      <label class="expiry-toggle">
+        <input id="expires-toggle" type="checkbox">
+        <span>Link expires</span>
+      </label>
+
+      <div id="expires-field" class="expiry-fields" hidden>
+        <div>
+          <label for="expires-at">Date</label>
+          <input id="expires-at" name="expires_at" type="date">
+        </div>
+        <div>
+          <label for="expires-time">Time</label>
+          <input id="expires-time" name="expires_time" type="time" step="60">
+        </div>
+      </div>
+
+      <button type="submit">Create link</button>
+    </form>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <section id="result" class="created-link" hidden aria-live="polite">
+      <div>
+        <span>Created</span>
+        <a id="short-url" target="_blank" rel="noopener"></a>
+      </div>
+      <button id="copy" class="quiet-button" type="button">Copy</button>
+    </section>
+
+    <section id="links" class="links-panel" hidden aria-live="polite">
+      <h2>Your links</h2>
+      <ul id="link-list"></ul>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector('#link-form'), error = document.querySelector('#error');
+    const result = document.querySelector('#result'), shortURL = document.querySelector('#short-url');
+    const links = document.querySelector('#links'), linkList = document.querySelector('#link-list');
+    const expiresToggle = document.querySelector('#expires-toggle'), expiresField = document.querySelector('#expires-field');
+    const expiresAt = document.querySelector('#expires-at'), expiresTime = document.querySelector('#expires-time');
+    const settingsForm = document.querySelector('#settings-form'), username = document.querySelector('#username');
+    const themeToggle = document.querySelector('#theme-toggle');
+    const localDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+    expiresAt.min = localDate(new Date());
+
+    function syncExpiry() {
+      expiresField.hidden = !expiresToggle.checked;
+      expiresAt.required = expiresToggle.checked;
+      expiresTime.required = expiresToggle.checked;
+      if (expiresToggle.checked) {
+        if (!expiresAt.value) expiresAt.value = localDate(new Date());
+        if (!expiresTime.value) expiresTime.value = '23:59';
+      } else {
+        expiresAt.value = '';
+        expiresTime.value = '';
+      }
+    }
+
+    function syncThemeButton() {
+      themeToggle.textContent = document.documentElement.dataset.theme === 'dark' ? 'Use light theme' : 'Use dark theme';
+    }
+
+    expiresToggle.addEventListener('change', syncExpiry);
+    syncThemeButton();
+
+    themeToggle.addEventListener('click', () => {
+      const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('golink-theme', theme);
+      syncThemeButton();
+    });
+
+    async function loadLinks() {
+      const response = await fetch('/api/links');
+      if (response.status === 401) { window.location.replace('/login'); return; }
+      if (!response.ok) throw new Error('Could not load your links');
+      const data = await response.json();
+      form.hidden = false;
+      links.hidden = data.length === 0;
+      linkList.replaceChildren();
+      for (const link of data) {
+        const item = document.createElement('li');
+        const info = document.createElement('div');
+        const anchor = document.createElement('a');
+        const destination = document.createElement('span');
+        const remove = document.createElement('button');
+        info.className = 'link-info';
+        anchor.href = link.short_url; anchor.textContent = link.slug; anchor.target = '_blank'; anchor.rel = 'noopener';
+        destination.textContent = link.url;
+        remove.type = 'button'; remove.className = 'delete-link'; remove.textContent = 'Delete';
+        remove.addEventListener('click', async () => {
+          const response = await fetch('/api/links/' + encodeURIComponent(link.slug), {method: 'DELETE'});
+          if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Could not delete link'); }
+          item.remove();
+          if (!linkList.children.length) links.hidden = true;
+        });
+        info.append(anchor, destination); item.append(info, remove); linkList.append(item);
+      }
+    }
+
+    async function loadSettings() {
+      const response = await fetch('/api/users/me');
+      if (response.status === 401) { window.location.replace('/login'); return; }
+      if (!response.ok) throw new Error('Could not load settings');
+      username.value = (await response.json()).username;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); error.hidden = true; result.hidden = true;
+      const body = {slug: form.slug.value, url: form.url.value};
+      if (expiresToggle.checked) {
+        const [year, month, day] = expiresAt.value.split('-').map(Number);
+        const [hour, minute] = expiresTime.value.split(':').map(Number);
+        body.expires_at = new Date(year, month - 1, day, hour, minute).toISOString();
+      }
+      try {
+        const response = await fetch('/api/links', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not create the link');
+        shortURL.href = data.short_url; shortURL.textContent = data.short_url;
+        result.hidden = false; form.reset(); syncExpiry(); await loadLinks();
+      } catch (err) { error.textContent = err.message; error.hidden = false; }
+    });
+
+    document.querySelector('#copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(shortURL.href);
+      document.querySelector('#copy').textContent = 'Copied';
+      setTimeout(() => document.querySelector('#copy').textContent = 'Copy', 1200);
+    });
+
+    settingsForm.addEventListener('submit', async (event) => {
+      event.preventDefault(); error.hidden = true;
+      try {
+        const response = await fetch('/api/users/me', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: username.value})});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save settings');
+        document.querySelector('.settings').open = false;
+      } catch (err) { error.textContent = err.message; error.hidden = false; }
+    });
+
+    document.querySelector('#sign-out').addEventListener('click', async (event) => {
+      event.preventDefault(); await fetch('/api/sessions', {method: 'DELETE'}); window.location.replace('/');
+    });
+
+    Promise.all([loadLinks(), loadSettings()]).catch(err => { error.textContent = err.message; error.hidden = false; });
+  </script>
+</body>
+</html>

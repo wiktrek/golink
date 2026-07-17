@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create an account — Golink</title>
+  <script src="/static/theme.js?v=3"></script>
+  <link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body>
+  <main>
+    <p class="eyebrow">GOLINK</p>
+    <h1>Create an account</h1>
+    <p class="intro">Set up an account to start making short links.</p>
+    <form id="account-form">
+      <label>Username <input name="username" minlength="3" maxlength="96" required autofocus></label>
+      <label>Email <input name="email" type="email" required></label>
+      <label>Password <span>(at least 12 characters)</span> <input name="password" type="password" minlength="12" required></label>
+      <button type="submit">Create account</button>
+    </form>
+    <p id="error" class="error" role="alert" hidden></p>
+    <p class="account">Already have an account? <a href="/login">Sign in</a>.</p>
+  </main>
+  <script>
+    const form = document.querySelector('#account-form'), error = document.querySelector('#error');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); error.hidden = true;
+      try {
+        const response = await fetch('/api/users', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not create your account');
+        window.location.href = '/dashboard';
+      } catch (err) { error.textContent = err.message; error.hidden = false; }
+    });
+  </script>
+</body>
+</html>

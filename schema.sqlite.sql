@@ -1,0 +1,32 @@
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS "User" (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS Short (
+    slug TEXT PRIMARY KEY,
+    url TEXT NOT NULL,
+    ownerId INTEGER NOT NULL,
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expiresAt DATETIME,
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    clicks INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT short_owner_fk FOREIGN KEY (ownerId) REFERENCES "User"(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Session (
+    tokenHash TEXT PRIMARY KEY,
+    userId INTEGER NOT NULL,
+    expiresAt DATETIME NOT NULL,
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT session_user_fk FOREIGN KEY (userId) REFERENCES "User"(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_short_owner_id ON Short (ownerId);
+CREATE INDEX IF NOT EXISTS idx_short_expires_at ON Short (expiresAt);
+CREATE INDEX IF NOT EXISTS idx_session_expires_at ON Session (expiresAt);
